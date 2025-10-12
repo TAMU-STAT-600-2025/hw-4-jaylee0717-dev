@@ -26,7 +26,7 @@ standardizeXY <- function(X, Y){
 # [ToDo] Soft-thresholding of a scalar a at level lambda 
 # [OK to have vector version as long as works correctly on scalar; will only test on scalars]
 soft <- function(a, lambda){
-  return(sign(a)*max(abs(a)-lambda, 0))
+  return(sign(a) * max(abs(a) - lambda, 0))
 }
 
 # [ToDo] Calculate objective function of lasso given current values of Xtilde, Ytilde, beta and lambda
@@ -35,7 +35,8 @@ soft <- function(a, lambda){
 # lamdba - tuning parameter
 # beta - value of beta at which to evaluate the function
 lasso <- function(Xtilde, Ytilde, beta, lambda){
- 
+  n <- nrow(Xtilde)
+  return(crossprod(Ytilde - Xtilde %*% beta) / (2*n) + lambda * sum(abs(beta)))
 }
 
 # [ToDo] Fit LASSO on standardized data for a given lambda

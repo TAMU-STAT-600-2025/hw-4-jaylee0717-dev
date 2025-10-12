@@ -3,13 +3,15 @@
 # Y - n x 1 response vector
 standardizeXY <- function(X, Y){
   n <- nrow(X)
+  p <- ncol(X)
   # [ToDo] Center Y
   Ymean <- mean(Y)
   Ytilde <- Y - Ymean
   # [ToDo] Center and scale X
   Xmeans <- colMeans(X)
-  Xtilde <- scale(Xmeans) * sqrt(n / (n - 1))
-  
+  Xcentered <- X - matrix(Xmeans, n, p, byrow = TRUE)
+  weights <- sqrt(diag(crossprod(Xcentered) / n))
+  Xtilde <- Xcentered %*% diag(1 / weights)
   
   # Return:
   # Xtilde - centered and appropriately scaled X
@@ -19,6 +21,7 @@ standardizeXY <- function(X, Y){
   # weights - defined as sqrt(X_j^{\top}X_j/n) after centering of X but before scaling
   return(list(Xtilde = Xtilde, Ytilde = Ytilde, Ymean = Ymean, Xmeans = Xmeans, weights = weights))
 }
+
 
 # [ToDo] Soft-thresholding of a scalar a at level lambda 
 # [OK to have vector version as long as works correctly on scalar; will only test on scalars]

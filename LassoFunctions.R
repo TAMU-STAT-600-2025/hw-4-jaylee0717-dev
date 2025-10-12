@@ -75,6 +75,29 @@ fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps 
   # Stop when the difference between objective functions is less than eps for the first time.
   # For example, if you have 3 iterations with objectives 3, 1, 0.99999,
   # your should return fmin = 0.99999, and not have another iteration
+  fval_old <- lasso(Xtilde = Xtilde, Ytilde = Ytilde, beta = beta_start, lambda = lambda)
+  beta_new <- beta_start
+  
+  # Convergence check at the tail
+  repeat{
+    # Update Beta by coordinates
+    full_resid <- Ytilde - Xtilde %*% beta
+    for (j in 1:p) {
+      partial_resid <- full_resid + (Xtilde[, j] * beta[j])
+      beta_new[j] <- soft((1 / n) * crossprod(Xtilde[, j], partial_resid), lambda)
+    }
+    beta <- beta_new
+    
+    fval_new <- computeLassoObjective(Xtilde, Ytilde, beta, lambda)
+    # Stopping condition
+    if (abs(fval_old - fval_new) < eps) {
+      break
+    }
+    
+    # Update the old objective value for the next iteration
+    fval_old <- fval_new
+  }
+  fmin <- fval_new
   
   # Return 
   # beta - the solution (a vector)

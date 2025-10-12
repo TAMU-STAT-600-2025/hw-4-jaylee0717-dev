@@ -119,6 +119,7 @@ fitLASSOstandardized_seq <- function(Xtilde, Ytilde, lambda_seq = NULL, n_lambda
     stop("Number of rows in Xtilde and Ytilde must match")
   }
   n <- nrow(Xtilde)
+  p <- ncol(Xtilde)
   # [ToDo] Check for the user-supplied lambda-seq (see below)
   # If lambda_seq is supplied, only keep values that are >= 0,
   # and make sure the values are sorted from largest to smallest.
@@ -149,7 +150,19 @@ fitLASSOstandardized_seq <- function(Xtilde, Ytilde, lambda_seq = NULL, n_lambda
   # [ToDo] Apply fitLASSOstandardized going from largest to smallest lambda 
   # (make sure supplied eps is carried over). 
   # Use warm starts strategy discussed in class for setting the starting values.
+  n_lambda <- length(lambda_seq)
+  beta_mat <- matrix(0, ncol = n_lambda, nrow = p)
+  fmin_vec <- rep(0, n_lambda)
   
+  # Main Loop
+  beta_start <- rep(0, p)
+  for (ind in 1:n_lambda){
+    fit <- fitLASSOstandardized(Xtilde = Xtilde, Ytilde = Ytilde, lambda = lambda_seq[ind],
+                                          beta_start = beta_start, eps = eps)
+    fmin_vec[ind] <- fit$fmin
+    beta_mat[, ind] <- fit$beta
+    beta_start <- fit$beta
+  }
   
   # Return output
   # lambda_seq - the actual sequence of tuning parameters used

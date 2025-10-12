@@ -2,9 +2,13 @@
 # X - n x p matrix of covariates
 # Y - n x 1 response vector
 standardizeXY <- function(X, Y){
+  n <- nrow(X)
   # [ToDo] Center Y
-  
+  Ymean <- mean(Y)
+  Ytilde <- Y - Ymean
   # [ToDo] Center and scale X
+  Xmeans <- colMeans(X)
+  Xtilde <- scale(Xmeans) * sqrt(n / (n - 1))
   
   
   # Return:

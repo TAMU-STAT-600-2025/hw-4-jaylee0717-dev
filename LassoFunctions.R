@@ -65,6 +65,7 @@ fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps 
   return(list(beta = beta, fmin = fmin))
 }
 
+
 # [ToDo] Fit LASSO on standardized data for a sequence of lambda values. Sequential version of a previous function.
 # Xtilde - centered and scaled X, n x p
 # Ytilde - centered Y, n x 1
@@ -74,22 +75,41 @@ fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps 
 # eps - precision level for convergence assessment, default 0.001
 fitLASSOstandardized_seq <- function(Xtilde, Ytilde, lambda_seq = NULL, n_lambda = 60, eps = 0.001){
   # [ToDo] Check that n is the same between Xtilde and Ytilde
- 
+  if (nrow(Xtilde) != nrow(Ytilde)){
+    stop("Number of rows in Xtilde and Ytilde must match")
+  }
+  n <- nrow(Xtilde)
   # [ToDo] Check for the user-supplied lambda-seq (see below)
   # If lambda_seq is supplied, only keep values that are >= 0,
   # and make sure the values are sorted from largest to smallest.
   # If none of the supplied values satisfy the requirement,
   # print the warning message and proceed as if the values were not supplied.
-  
-  
+
+  if (!is.null(lambda_seq)) {
+    # Filter and sort
+    lambda_seq <- lambda_seq[lambda_seq >= 0]
+    lambda_seq <- sort(lambda_seq, decreasing = TRUE)
+    
+    # Check for emptiness
+    if (length(lambda_seq) == 0) {
+      warning("None of the supplied lambda values were non-negative. A default sequence will be generated.")
+      # Set lambda_seq back to NULL to trigger the default calculation block.
+      lambda_seq <- NULL
+    }
+  }
   # If lambda_seq is not supplied, calculate lambda_max 
   # (the minimal value of lambda that gives zero solution),
   # and create a sequence of length n_lambda as
-  lambda_seq = exp(seq(log(lambda_max), log(0.01), length = n_lambda))
+  if (is.null(lambda_seq)){
+    lambda_max <- max(abs(crossprod(Xtilde, Ytilde) / n))
+    lambda_seq = exp(seq(log(lambda_max), log(0.01), length = n_lambda))
+  }
+  
   
   # [ToDo] Apply fitLASSOstandardized going from largest to smallest lambda 
   # (make sure supplied eps is carried over). 
   # Use warm starts strategy discussed in class for setting the starting values.
+  
   
   # Return output
   # lambda_seq - the actual sequence of tuning parameters used
@@ -106,7 +126,7 @@ fitLASSOstandardized_seq <- function(Xtilde, Ytilde, lambda_seq = NULL, n_lambda
 # eps - precision level for convergence assessment, default 0.001
 fitLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, eps = 0.001){
   # [ToDo] Center and standardize X,Y based on standardizeXY function
- 
+  
   # [ToDo] Fit Lasso on a sequence of values using fitLASSOstandardized_seq
   # (make sure the parameters carry over)
  

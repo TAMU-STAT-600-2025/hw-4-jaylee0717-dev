@@ -240,11 +240,14 @@ cvLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, k = 5, fold_ids = NU
   
   # [ToDo] Calculate LASSO on each fold using fitLASSO,
   # and perform any additional calculations needed for CV(lambda) and SE_CV(lambda)
-  fold_errors <- matrix(NA, nrow = k, ncol = n_lambda)
-  
+  unique_folds <- sort(unique(fold_ids))
+  k_actual <- length(unique_folds)
+  fold_errors <- matrix(NA, nrow = k_actual, ncol = n_lambda)
 
-  for (j in 1:k){
+
+  for (i in 1:k_actual){
     # Identify training and validation data
+    j <- unique_folds[i]
     val_indices <- which(fold_ids == j)
     train_indices <- which(fold_ids != j)
     
@@ -261,11 +264,11 @@ cvLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, k = 5, fold_ids = NU
     predictions <- X_val %*% fold_fit$beta_mat + beta0_mat
     
     # Compute fold errors and store
-    fold_errors[j, ] <- colMeans((Y_val - predictions)^2)
+    fold_errors[i, ] <- colMeans((Y_val - predictions)^2)
   }
   # Compute CVm and cvse and store
   cvm <- colMeans(fold_errors)
-  cvse <- apply(fold_errors, 2, sd) / sqrt(k)
+  cvse <- apply(fold_errors, 2, sd) / sqrt(k_actual)
   
   
   # [ToDo] Find lambda_min
@@ -273,13 +276,8 @@ cvLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, k = 5, fold_ids = NU
   lambda_min <- lambda_seq[min_cvm_index]
   
   # [ToDo] Find lambda_1SE
-  min_cvm_value <- cvm[min_cvm_index]
-  se_at_min <- cvse[min_cvm_index]
-  one_se_threshold <- min_cvm_value + se_at_min
-  # Find all lambdas where the error is below the threshold
-  eligible_indices <- which(cvm <= one_se_threshold)
-  # From those, pick the one with the largest lambda value (simplest model)
-  lambda_1se <- max(lambda_seq[eligible_indices])
+  one_se_threshold <-cvm[min_cvm_index] + cvse[min_cvm_index]
+  lambda_1se <- max(lambda_seq[cvm <= one_se_threshold])
   
   # Return output
   # Output from fitLASSO on the whole data
@@ -291,6 +289,6 @@ cvLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, k = 5, fold_ids = NU
   # lambda_1se - selected lambda based on 1SE rule
   # cvm - values of CV(lambda) for each lambda
   # cvse - values of SE_CV(lambda) for each lambda
-  return(list(lambda_seq = lambda_seq, beta_mat = beta_mat, beta0_vec = beta0_vec, fold_ids = fold_ids, lambda_min = lambda_min, lambda_1se = lambda_1se, cvm = cvm, cvse = cvse))
+  return(list(lambda_seq = original_fit$lambda_seq, beta_mat = original_fit$beta_mat, beta0_vec = original_fit$beta0_vec, fold_ids = fold_ids, lambda_min = lambda_min, lambda_1se = lambda_1se, cvm = cvm, cvse = cvse))
 }
 

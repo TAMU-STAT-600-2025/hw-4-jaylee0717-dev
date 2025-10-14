@@ -216,46 +216,61 @@ fitLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, eps = 0.001){
 # fold_ids - (optional) vector of length n specifying the folds assignment (from 1 to max(folds_ids)), if supplied the value of k is ignored 
 # eps - precision level for convergence assessment, default 0.001
 cvLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, k = 5, fold_ids = NULL, eps = 0.001){
+  n <- nrow(X)
+  
   # [ToDo] Fit Lasso on original data using fitLASSO
   original_fit <- fitLASSO(X = X, Y = Y, lambda_seq = lambda_seq, n_lambda = n_lambda, eps = eps)
+  lambda_seq <- original_fit$lambda_seq
+  n_lambda <- length(lambda_seq)
+  
   # [ToDo] If fold_ids is NULL, split the data randomly into k folds.
   # If fold_ids is not NULL, split the data according to supplied fold_ids.
   if (is.null(fold_ids)){
-    
+    fold_ids <- sample(rep(1:k, length.out = n), size = n)
   }
-  else{
-    
-  }
+  
   # [ToDo] Calculate LASSO on each fold using fitLASSO,
   # and perform any additional calculations needed for CV(lambda) and SE_CV(lambda)
-  lambda_seq <- original_fit$lambda_seq
-  
-  
   fold_errors <- matrix(NA, nrow = k, ncol = n_lambda)
   
 
-  for (fold in 1:k){
+  for (j in 1:k){
     # Identify training and validation data
+    val_indices <- which(fold_ids == j)
+    train_indices <- which(fold_ids != j)
     
+    X_train <- X[train_indices, ]
+    Y_train <- Y[train_indices]
+    X_val <- X[val_indices, ]
+    Y_val <- Y[val_indices]
     # Fit Lasso on training data, make predictions
-
+    fold_fit <- fitLASSO(X = X_train, Y = Y_train, lambda_seq = lambda_seq, eps = eps)
     
+    # Make predictions on the validation set for the entire path
+    # beta0_vec needs to be replicated for each observation in the validation set
+    beta0_mat <- matrix(fold_fit$beta0_vec, nrow = length(val_indices), ncol = n_lambda, byrow = TRUE)
+    predictions <- X_val %*% fold_fit$beta_mat + beta0_mat
     
     # Compute fold errors and store
-      
-
+    fold_errors[j, ] <- colMeans((Y_val - predictions)^2)
   }
-  # Compute CVlambda and store
-
-
-  
-  
+  # Compute CVm and cvse and store
+  cvm <- colMeans(fold_errors)
+  cvse <- apply(fold_errors, 2, sd) / sqrt(k)
   
   
   # [ToDo] Find lambda_min
-
-  # [ToDo] Find lambda_1SE
+  min_cvm_index <- which.min(cvm)
+  lambda_min <- lambda_seq[min_cvm_index]
   
+  # [ToDo] Find lambda_1SE
+  min_cvm_value <- cvm[min_cvm_index]
+  se_at_min <- cvse[min_cvm_index]
+  one_se_threshold <- min_cvm_value + se_at_min
+  # Find all lambdas where the error is below the threshold
+  eligible_indices <- which(cvm <= one_se_threshold)
+  # From those, pick the one with the largest lambda value (simplest model)
+  lambda_1se <- max(lambda_seq[eligible_indices])
   
   # Return output
   # Output from fitLASSO on the whole data

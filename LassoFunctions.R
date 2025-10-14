@@ -2,6 +2,7 @@
 # X - n x p matrix of covariates
 # Y - n x 1 response vector
 standardizeXY <- function(X, Y){
+  Y <- as.vector(Y)
   n <- nrow(X)
   p <- ncol(X)
   # [ToDo] Center Y
@@ -47,7 +48,8 @@ lasso <- function(Xtilde, Ytilde, beta, lambda){
 # eps - precision level for convergence assessment, default 0.001
 fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps = 0.001){
   #[ToDo]  Check that n is the same between Xtilde and Ytilde
-  if (nrow(Xtilde) != nrow(Ytilde)){
+  Ytilde <- as.vector(Ytilde)
+  if (nrow(Xtilde) != length(Ytilde)){
     stop("Number of rows in Xtilde and Ytilde must match")
   }
   n <- nrow(Xtilde)
@@ -78,24 +80,29 @@ fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps 
   fval_old <- lasso(Xtilde = Xtilde, Ytilde = Ytilde, beta = beta_start, lambda = lambda)
   beta <- beta_start
   beta_new <- beta_start
+  resid <- Ytilde - Xtilde %*% beta
   
   # Convergence check at the tail
   repeat{
     # Update Beta by coordinates
-    full_resid <- Ytilde - Xtilde %*% beta
     for (j in 1:p) {
-      partial_resid <- full_resid + (Xtilde[, j] * beta[j])
+      # Update Beta
+      partial_resid <- resid + (Xtilde[, j] * beta[j])
       beta_new[j] <- soft((1 / n) * crossprod(Xtilde[, j], partial_resid), lambda)
+      
+      # Recalculate Residuals and store new beta into old
+      resid <- resid - Xtilde[, j] * (beta_new[j] - beta[j])
+      beta <- beta_new
     }
-    beta <- beta_new
+
     
-    fval_new <- lasso(Xtilde, Ytilde, beta, lambda)
+    fval_new <- lasso(Xtilde, Ytilde, beta_new, lambda)
     # Stopping condition
     if (abs(fval_old - fval_new) < eps) {
       break
     }
     
-    # Update the old objective value for the next iteration
+    # Update the values for the next iteration
     fval_old <- fval_new
   }
   fmin <- fval_new
@@ -115,8 +122,9 @@ fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps 
 #             is only used when the tuning sequence is not supplied by the user
 # eps - precision level for convergence assessment, default 0.001
 fitLASSOstandardized_seq <- function(Xtilde, Ytilde, lambda_seq = NULL, n_lambda = 60, eps = 0.001){
+  Ytilde <- as.vector(Ytilde)
   # [ToDo] Check that n is the same between Xtilde and Ytilde
-  if (nrow(Xtilde) != nrow(Ytilde)){
+  if (nrow(Xtilde) != length(Ytilde)){
     stop("Number of rows in Xtilde and Ytilde must match")
   }
   n <- nrow(Xtilde)
@@ -163,6 +171,7 @@ fitLASSOstandardized_seq <- function(Xtilde, Ytilde, lambda_seq = NULL, n_lambda
     fmin_vec[ind] <- fit$fmin
     beta_mat[, ind] <- fit$beta
     beta_start <- fit$beta
+
   }
   
   # Return output

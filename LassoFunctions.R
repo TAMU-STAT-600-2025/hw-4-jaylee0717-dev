@@ -10,8 +10,8 @@ standardizeXY <- function(X, Y){
   # [ToDo] Center and scale X
   Xmeans <- colMeans(X)
   Xcentered <- X - matrix(Xmeans, n, p, byrow = TRUE)
-  weights <- sqrt(diag(crossprod(Xcentered) / n))
-  Xtilde <- Xcentered %*% diag(1 / weights)
+  weights <- sqrt(colSums(xcentered^2 / n))
+  Xtilde <- sweep(Xcentered, 2, weights, FUN = "/")
   
   # Return:
   # Xtilde - centered and appropriately scaled X
@@ -179,12 +179,19 @@ fitLASSOstandardized_seq <- function(Xtilde, Ytilde, lambda_seq = NULL, n_lambda
 # eps - precision level for convergence assessment, default 0.001
 fitLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, eps = 0.001){
   # [ToDo] Center and standardize X,Y based on standardizeXY function
-  
+  std_res <- standardizeXY(X, Y)
+  Xtilde <- std_res$Xtilde
+  Ytilde <- std_res$Ytilde
   # [ToDo] Fit Lasso on a sequence of values using fitLASSOstandardized_seq
   # (make sure the parameters carry over)
- 
+  fit <- fitLASSOstandardized_seq(Xtilde = Xtilde, Ytilde = Ytilde, lambda_seq = lambda_seq, 
+                          n_lambda = n_lambda, eps = eps)
+  
   # [ToDo] Perform back scaling and centering to get original intercept and coefficient vector
   # for each lambda
+  beta_mat <- beta_tilde_mat / weights
+  
+  
   
   # Return output
   # lambda_seq - the actual sequence of tuning parameters used

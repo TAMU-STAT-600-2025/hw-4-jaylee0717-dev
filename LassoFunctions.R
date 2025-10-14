@@ -10,7 +10,7 @@ standardizeXY <- function(X, Y){
   # [ToDo] Center and scale X
   Xmeans <- colMeans(X)
   Xcentered <- X - matrix(Xmeans, n, p, byrow = TRUE)
-  weights <- sqrt(colSums(xcentered^2 / n))
+  weights <- sqrt(colSums(Xcentered^2 / n))
   Xtilde <- sweep(Xcentered, 2, weights, FUN = "/")
   
   # Return:
@@ -76,6 +76,7 @@ fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps 
   # For example, if you have 3 iterations with objectives 3, 1, 0.99999,
   # your should return fmin = 0.99999, and not have another iteration
   fval_old <- lasso(Xtilde = Xtilde, Ytilde = Ytilde, beta = beta_start, lambda = lambda)
+  beta <- beta_start
   beta_new <- beta_start
   
   # Convergence check at the tail
@@ -88,7 +89,7 @@ fitLASSOstandardized <- function(Xtilde, Ytilde, lambda, beta_start = NULL, eps 
     }
     beta <- beta_new
     
-    fval_new <- computeLassoObjective(Xtilde, Ytilde, beta, lambda)
+    fval_new <- lasso(Xtilde, Ytilde, beta, lambda)
     # Stopping condition
     if (abs(fval_old - fval_new) < eps) {
       break
@@ -182,6 +183,10 @@ fitLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, eps = 0.001){
   std_res <- standardizeXY(X, Y)
   Xtilde <- std_res$Xtilde
   Ytilde <- std_res$Ytilde
+  Ymean <- std_res$Ymean
+  Xmeans <- std_res$Xmeans
+  weights <- std_res$weights
+  
   # [ToDo] Fit Lasso on a sequence of values using fitLASSOstandardized_seq
   # (make sure the parameters carry over)
   fit <- fitLASSOstandardized_seq(Xtilde = Xtilde, Ytilde = Ytilde, lambda_seq = lambda_seq, 
@@ -189,15 +194,16 @@ fitLASSO <- function(X ,Y, lambda_seq = NULL, n_lambda = 60, eps = 0.001){
   
   # [ToDo] Perform back scaling and centering to get original intercept and coefficient vector
   # for each lambda
-  beta_mat <- beta_tilde_mat / weights
-  
+  lambda_seq_used <- fit$lambda_seq
+  beta_mat <- fit$beta_mat / weights
+  beta0_vec <- as.vector(Ymean - crossprod(Xmeans, beta_mat))
   
   
   # Return output
   # lambda_seq - the actual sequence of tuning parameters used
   # beta_mat - p x length(lambda_seq) matrix of corresponding solutions at each lambda value (original data without center or scale)
   # beta0_vec - length(lambda_seq) vector of intercepts (original data without center or scale)
-  return(list(lambda_seq = lambda_seq, beta_mat = beta_mat, beta0_vec = beta0_vec))
+  return(list(lambda_seq = lambda_seq_used, beta_mat = beta_mat, beta0_vec = beta0_vec))
 }
 
 
